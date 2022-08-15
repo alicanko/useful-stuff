@@ -1,4 +1,5 @@
-## Run-time Polymorphism:
+
+### Run-time Polymorphism:
 ```cpp
 virtual void land(); // virtual function - interface and default implementation - makes it polymorphic class
 
@@ -48,9 +49,7 @@ namespace ali{
 
 int main() {
 	vector<ali::Myclass> myvec;
-
 	foo(myvec); // geçerli, gönderilen argument sayesinde namespace alanına da bakılır.
-
 	func(67); // geçersiz
 }
 ```
@@ -155,13 +154,11 @@ Big-O Notation (O-notation): Represents the upper bound of the running time of a
 1) Linear Search:
 
 * It is used for unsorted and unordered small list of elements.
-
 * It has a time complexity of O(n), which means the time is linearly dependent on the number of elements.
 
 2) Binary Search:
 
 * It is applied on the sorted array or list of large size.
-
 * It's time complexity of O(log n) makes it very fast as compared to other sorting algorithms.
 
 #### Sorting Algorithms:
@@ -169,39 +166,32 @@ Big-O Notation (O-notation): Represents the upper bound of the running time of a
 1) Bubble Sort:
 
 * Compares all the element one by one and sort them based on their values.
-
 * Time complexity of Bubble Sort is O(n2).
 
 2) Insertion Sort:
 
 * It starts from the index 1(not 0), and each index starting from index 1 is like a new card, that you have to place at the right position in the sorted subarray on the left.
-
 * Time complexity of Insertion Sort is O(n2).
-
 * It is better than Selection Sort and Bubble Sort algorithms.
 
 3) Selection Sort:
 
 * It repeatedly selects the next-smallest element and swaps it into the right place.
-
 * Time complexity of Selection Sort is O(n2).
 
 4) Quick Sort:
 
 * Based on the concept of Divide and Conquer. Also called partition-exchange sort.
-
 * Time complexity of Quick Sort is O(n2).
 
 5) Merge Sort:
 
 * Follows the rule of Divide and Conquer to sort a given set of numbers/elements, recursively, hence consuming less time.
-
 * Time complexity of Merge Sort is O(n*Log n).
 
 6) Heap Sort:
 
 * Involves building a Heap data structure from the given array and then utilizing the Heap to sort the array.
-
 * Time complexity of Heap Sort is O(n*Log n).
 
 #### Data Structures:
@@ -209,7 +199,6 @@ Big-O Notation (O-notation): Represents the upper bound of the running time of a
 Hash table data structure stores elements in key-value pairs where;
 
 * Key: unique integer that is used for indexing the values.
-
 * Value: data that are associated with keys.
 
 In a hash table, a new index is processed using the keys. The element corresponding to that key is stored in the index. This process is called hashing.
@@ -257,13 +246,9 @@ b) Circular Linked List: Last node of the list holds the address of the first no
 Array vs Linked List:
 
 * Array supports Random Access. Linked List supports Sequential Access.
-
 * In an array, elements are stored in contiguous memory location. In a linked list, new elements can be stored anywhere in the memory.
-
 * For array, memory is allocated at compile time(static memory allocation). For linked list, at runtime(dynamic memory allocation).
-
 * Array gets memory allocated in the Stack section. Whereas, linked list gets memory allocated in Heap section.
-
 * For array, accessing elements is fast. For linked list, insertion and deletion is fast, O(1) constant.
 
 Nonlinear Data Structures: graph, tree.
