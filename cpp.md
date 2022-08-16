@@ -31,15 +31,15 @@ int a[x];
 * C dilinde const T* => T* implicit type conversion var, C++'da geçerli değil.
 ```cpp
   const int x = 20; // C dilinde external linkage (static ile nitelenirse => internal)
-				    // C++ dilinde internal linkage (sadece olduğu dosyada geçerli)
+	            // C++ dilinde internal linkage (sadece olduğu dosyada geçerli)
 ```
 #### const & pointer
 ```cpp
 int x = 10;
 int* const p1 = &x;		  // const pointer - top level const (adres değiştirilemez)
-*p1 = 45;				  // p1 = &y; geçersiz
+*p1 = 45;		          // p1 = &y; geçersiz
 const int* p2 = &x;		  // pointer to const - low level const (değer değiştirilemez)
-p2 = &y;				  // *p2 = 56; geçersiz
+p2 = &y;		          // *p2 = 56; geçersiz
 const int* const p3 = &x; // hem adres hem de değer değiştirilemez
 ```
   
@@ -153,9 +153,9 @@ enum ile forward declaration yapılamıyordu.
 ```
 #### Reference Semantics
 ```cpp  
-ptr = &x;  /* & adres operatörü */			|	int x = 10;
+ptr = &x;  /* & adres operatörü */		|	int x = 10;
 *ptr = 10; /* * dereferencing operatörü */	|	int* p = &x; // * declarator
-											|	int& r = x;  // & L value ref
+						|	int& r = x;  // & L value ref
 ```
 * Referanslar assembly düzeyinde bir kavram değil, sonuçta derleyici pointer kodu üretir. Referanslar sadece kod yazımına yönelik kolaylık sağlar.
 ```cpp
@@ -176,14 +176,14 @@ r = 20;		// or *ptr = 20;
   * C++'da koşul operatörü(e.g. a>5 ? x:y) lvalue, C dilinde rvalue
  #### const correctness
 ```cpp
-void func(T* ptr);		// or func(T& r);  		setter(mutator) function
+void func(T* ptr);	// or func(T& r);  		setter(mutator) function
 void foo(const T* ptr);	// or foo(const T& r);  getter(accessor) function
 ```
 ```cpp
 int const& r = x; // or const int& r = x; const reference
 ```
 ```cpp
-int& const r = x; 	   // reference zaten const olduğu için derleyici ignore eder
+int& const r = x;      // reference zaten const olduğu için derleyici ignore eder
 void bar(const int x); // manasız, const bir şey katmıyor
 ```
 ```cpp
@@ -239,7 +239,7 @@ int(*fptr)(int) = func; // function pointer
 #### Forwarding Reference (Universal Reference)
 ```cpp  
 int x{};
-auto&& r = x;		// or int& r = x; 		int& && => int&
+auto&& r = x;	    // or int& r = x; 		int& && => int&
 auto&& r = x + 5;   // or int&& r = x+5;	int &&  => int&&
 ```
 Reference collapsing: Normalde C++ dilinde "reference to reference" olmaz. Ancak tür çıkarımı yapılan durumlarda tür çıkarım sonucunda oluşabilir. Bu durumda derleyici reference collapsing uygular.
@@ -271,7 +271,7 @@ decltype: type deduction için kullanılır.
 * Unevaluated context: Bazı durumlarda yazılan kodda bir ifade olmasına rağmen derleyici dilin kurallarına göre o ifade için bir işlem kodu üretmez.
 ```cpp  
   decltype(++x) y = z;         // ++x işlemi yapılmaz, x'in değeri aynı kalır
-  auto t = sizeof(func()); 	   // func() çağrısı yapılmaz
+  auto t = sizeof(func());     // func() çağrısı yapılmaz
   auto s = typeid(x++).name(); // x'in değeri aynı kalır
 ```
 # COURSE 05
@@ -280,7 +280,7 @@ decltype: type deduction için kullanılır.
   const int x = 10; 	// constant expression ile ilk değer
   const int y = foo();  // fonksiyon dönüşü ile ilk değer
   int a[x] = {0};
-  int b[y] = {0};		// geçersiz, y sabit bir ifade ile ilk değer almıyor
+  int b[y] = {0};       // geçersiz, y sabit bir ifade ile ilk değer almıyor
 ```
 * const türün bir parçası iken constexpr o nesnenin sabit olarak kullanılacağını gösterir. Eğer bir
 constexpr nesnenin tanımı geçerli ise sabit ifadesi gereken her yerde kullanılabilir.
@@ -364,14 +364,14 @@ fonksiyonlar bir kümeye konulur. Argümanlardan bağımsız.
 		- function to pointer conversion
 ```
 Candidate functions => Viable functions => Best viable function
-					-> No match			-> Ambiguity
+		    -> No match		-> Ambiguity
 ```					
 ```cpp
   void func(long double);	// Viable => Conversion
-  void func(char);			// Viable => Conversion
+  void func(char);		// Viable => Conversion
   void func(int, int);		// Candidate
-  void func(int*);			// Candidate
-  func(67);	// 1. ve 2. Viable, ikisinde de Conversion => Ambiguity
+  void func(int*);		// Candidate
+  func(67);	                // 1. ve 2. Viable, ikisinde de Conversion => Ambiguity
 ```
 # COURSE 06
 Function overload resolution için özel durumlar;
@@ -395,7 +395,7 @@ Function overload resolution için özel durumlar;
    void func(const int&);
    void func(int&&);
    int x{34};
-   func(x);		// sadece birinci viable, void func(const int&) çağrılır
+   func(x);	// sadece birinci viable, void func(const int&) çağrılır
    func(34);	// ikisi de viable, void func(int&&) çağrılır
 ```
  4) null pointer conversion
@@ -418,7 +418,7 @@ için en az bir parametrede diğerlerine üstün gelmesi ve diğer parametrelerd
   void func(long, int, bool);
   void func(double, float, int);
   func(12, 5u, 2.3);	// void func(int, double, long) çağrılır
-  func(12, 5u, 8);		// 1. ve 3. eşit => Ambiguity
+  func(12, 5u, 8);	// 1. ve 3. eşit => Ambiguity
   func(12u, 65L, true); // void func(long, int, bool) çağrılır
 ```
   
@@ -464,7 +464,7 @@ Sınıfın üye fonksiyonu içinde o sınıfa ait herhangi bir sınıf nesnesini
   int main(){
 	Alican ax;
 	ax.func(1.2);	// önce function overload resolution ile void func(double x) seçilir.
-  }					// access control en son yapıldığından private fonksiyona yapılan çağrı geçersiz
+  }			// access control en son yapıldığından private fonksiyona yapılan çağrı geçersiz
 ```  
  [1] const üye fonksiyonlar içinde sınıfın non-static veri elemanları değiştirilemez.
 
@@ -504,7 +504,7 @@ Bir üye değişkenin const üye fonksiyonlar içinde değişebilmesini sağlama
 Değeri non-static üye fonksiyon hangi nesne için çağrıldıysa o nesnenin adresidir. PR value expr.
 ```cpp  
   void Myclass::func(){
-	mx = 10;			// all three are same
+	mx = 10;		// all three are same
 	Myclass::mx = 10;	// all three are same
 	this->mx = 10;		// all three are same
   }
