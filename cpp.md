@@ -839,3 +839,139 @@ public:
 ```
 
 Defaulted move members defined as deleted actually behave as not declared.
+
+# COURSE 11
+Mandatory copy elision: C++17 ile zorunlu hale gelen, derleyicinin kopyalamadan kaçınmak için yaptığı kod düzenlemesidir.
+#### Temporary objects: En sık fonksiyon parametresine verilmek üzere kullanılır.
+```cpp
+Myclass{10}; // ismi yok, construct edildikten sonra bir sonraki statement evaluate edilmeden destruct edilir.
+```
+```cpp
+void f1(Myclass);        // f1(Myclass{}); call by value
+void f2(const Myclass&); // f2(Myclass{});
+void f3(Myclass&&);      // f3(Myclass{});
+void f4(Myclass&);       // f4(Myclass{}); syntax hatası
+```
+Life extension:
+```cpp
+const Myclass& r = Myclass{}; // r nesnesinin ömrünün sona ereceği yere kadar destruct edilmez.
+```
+Bazı durumlarda derleyiciler implicit olarak temporary objects oluşturabilirler.
+
+```cpp
+void func(Myclass x);
+int main() {
+  func(Myclass()); // önce geçici nesnenin ctor'ı çağrılır.
+  // sonra parametre değişkeni için copy ctor çağırmak yerine mandatory copy elision uygulanarak ikinci bir çağrı yapmaktan kaçınılır.
+  // buradaki işlem sınıfın move ctor'ı olup olmamasından bağımsızdır.
+}
+```
+#### Return Value Optimization
+```cpp
+Myclass foo(){
+  return Myclass{};
+}
+int main(){
+  Myclass x = foo(); // önce geçici nesne için default ctor çağrılır.
+  // sonra x değişkeni için copy/move ctor çağırmak yerine mandatory copy elision uygulanır.
+}
+```
+#### Named Return Value Optimization
+Mandatory olmayan ama çoğu derleyicinin kullandığı bir copy elision yöntemidir.
+```cpp
+Myclass func(){
+  Myclass mx;
+  return mx;
+}
+int main(){
+  Myclass x = func();
+}
+```
+Modern C++'da copy elision sayesinde fonksiyon parametresine adres geçmek tercih edilmemeye başlamıştır.
+```cpp
+std::string foo(); // more preferable
+void func(std::string& r);
+```
+#### Conversion constructor
+```cpp
+class Myclass{
+public:
+  Myclass();
+  Myclass(int);
+};
+void func(Myclass x);
+void foo(const Myclass&);
+int main(){
+   Myclass m;
+   m = 10;    // m = Myclass{10}; önce sınıfın int parametreli ctor kullanılarak bir geçici nesne oluşturulur.
+   // sonra copy assignment operator fonksiyonu ile kopyalanır. Geçici nesne destruct edilir.
+   func(15);  // func(Myclass{15});
+   foo(7);    // foo(Myclass{7});
+   m = 2.5;
+   func(4.75); // standard conv.(double->int) + user defined conv.(int->Myclass)
+}
+```
+* user-defined conversion
+	* conversion constructor
+	* type-cast operator function
+* Derleyiciler, standard conversion ve user-defined conversion yapılması gereken dönüşümleri yapmakla yükümlüdür.
+```cpp
+int main(){
+  string str;
+  str = "this is a sentence"; // conversion ctor çağrıldı.
+}
+```
+#### Explicit constuctor: Sadece explicit olarak tür dönüşümü yapan constructor.
+```cpp
+class Myclass{
+public:
+  Myclass() = default;
+  explicit Myclass(int);
+};
+int main(){
+  Myclass m;
+  m = static_cast<Myclass>(10); // m = 10; syntax hatası
+}
+```
+```cpp
+class Myclass{
+public:
+  Myclass(int); // explicit yazılırsa aşağıdaki çağrıda copy init syntax hatası verir.
+};
+int main(){
+  Myclass m = 10; // burada geçici nesne oluşturulmaz, doğrudan Myclass(10) şeklinde çağrı yapılır.
+}
+```
+Tek parametreli constructorlarda explicit anahtar sözcüğü kullanımı hataların önüne geçer.
+```cpp
+class Myclass{
+public:
+  explicit Myclass(int); // viable function olmaktan çıktığı için function overload setinde yer almaz.
+  Myclass(double);
+};
+int main(){
+  Myclass x = 10; // Myclass(double) çağrılır.
+}
+```
+
+## Dynamic Storage Class
+- Maliyeti yüksek,
+- Kodlama hatası riski çok yüksek,
+- Test, debug veya değişiklik yapmak daha zor olduğu için mecbur kalmadıkça automatic storage class kullanılmalıdır.
+
+Dinamik ömürlü nesne hayata new operatörü ile gelir, delete operatörü ile ömrü son bulur.
+new operatörü ile oluşturulan ifadeler birer pointerdır, adrese karşılık gelir.
+```cpp
+Myclass* p = new Myclass; // default initialization
+p->func();
+delete p;
+```
+Derleyici C++ dilinin standart bir fonksiyonuna çağrı yaparak ihtiyaç duyulan dinamik belleği tutmaya çalışır. Elde edilen bellek bloğunun adresi ile sınıfın ctor'ına çağrı yapılır.
+```cpp
+void* operator new(size_t n); // C karşılığı malloc
+// new başarısız olursa throw exception, malloc başarısız olursa return nullptr
+```
+delete operatörü ile bir sınıf nesnesi delete edildiğinde önce o nesneye ait sınıfın destructor'ı çağrılır. Daha sonra dinamik bellek free edilmesi için operator delete fonksiyonu çalışır.
+```cpp
+void operator delete(void*); // C karşılığı free
+```
