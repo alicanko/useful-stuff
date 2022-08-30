@@ -703,3 +703,139 @@ C++ dilinde eğer bir sınıf nesnesine aynı türden bir başka sınıf nesnesi
   Myclass x, y;
   x = y;	// or x.operator=(y)
 ```
+
+# COURSE 10
+Copy assignment fonksiyonuna ihtiyaç duyulmasını anlatan örnek:
+```cpp
+int main() {
+  Sentence first {"first"};
+  {
+    Sentence second {"second"}; // could not be freed
+    second = first;
+  }
+  first.print(); // undefined behavior due to dangling pointer
+} // double deletion for address of "first" object
+
+Sentence& Sentence::operator=(const Sentence& other) {
+  if(this == &other) // self-assignment
+    return *this;
+  free(mp);
+  mlen = other.mlen;
+  mp = static_cast<char*>(malloc(mlen+1));
+  if(!mp)
+    exit(EXIT_FAILURE);
+  strcpy(mp, other.mp);
+  return *this;
+}
+```
+
+Rule of Five (The Rule of Big 5): If a class defines any of the following, then it should probably explicitly define all five special member functions; destructor, copy constructor, copy assignment operator, move constructor, move assignment operator.
+
+#### Move Semantics: move constructor, move assignment
+Bir sınıf nesnesinin hayatının biteceğini ve hiç bir kodun bu sınıf nesnesini kullanmayacağını biliyorsak, move semantics kullanarak kaynakları başka bir nesneye aktarabiliriz.
+```cpp
+Myclass(const Myclass&); // copy ctor -> L-val ile çağrılır.
+Myclass(Myclass&&);      // move ctor -> R-val ile çağrılır.
+```
+```cpp
+Myclass x;               // ctor
+Myclass y(x);            // copy ctor
+Myclass z(Myclass{});    // move ctor
+Myclass k(std::move(x)); // move ctor -> Myclass k(static_cast<Myclass&&>(x);
+```
+Her sınıfın move constructor'ı olmak zorunda değil. R-val ile çağrı yapıldığında sınıfın move ctor'ı yok ise copy ctor çağrılır.
+```cpp
+Sentence::Sentence(Sentence&& other) : mp(other.mp), mlen(other.mlen)
+{
+  other.mp = nullptr;
+}
+Sentence::~Sentence()
+{
+  if(mp)  // if(mp != nullptr)
+    free(mp);
+}
+Sentence& Sentence::operator=(Sentence&& other)
+{
+  if(this == &other) // self-assignment
+    return *this;
+  free(mp);
+  mp = other.mp;
+  mlen = other.mlen;
+  return *this;
+}
+```
+Bir fonksiyonun parametresi neden sağ taraf referansı olur?
+* Taşımak için;
+```cpp
+void func(Myclass&& x){
+  Myclass m(std::move(x)); // move ctor -> eğer std::move() çağrılmasaydı copy ctor çağrılırdı.
+}
+```
+Derleyicinin yazdığı special member functions:
+```cpp
+Myclass(const Myclass& other): ax(other.ax), bx(other.bx) {} // copy ctor
+Myclass(Myclass&& other): ax(std::move(other.ax)), bx(std::move(other.bx)){} // move ctor
+Myclass& operator=(const Myclass& other) { // copy assignment
+  ax = other.ax;
+  bx = other.bx;
+}
+Myclass& operator=(Myclass&& other) { // move assignment
+  ax = std::move(other.ax);
+  bx = std::move(other.bx);
+}
+```
+The special member functions can be:
+* Not declared: yok, bildirilmemiş.
+    ```cpp 
+    Myclass(int); // derleyici default ctor yazmaz.
+    ```
+* Implicitly declared: derleyici tarafından bildirilmiş (defaulted or deleted).
+    ```cpp
+    class Myclass {
+    public:
+	  // Myclass() = delete; const bir değişken default init ile hayatına başlayamayacağı için default ctor derleyici tarafından delete edilir.
+    private:
+	  const int x;
+    };
+
+    class A{
+      A();
+    };
+    class B{
+      // B() = delete; A sınıfının ctor'ı private olduğu için B sınıfı tarafından default init yapılamaz. Bu nedenle B sınıfının default ctor'ı derleyici tarafından delete edilir.
+      A ax;
+    };
+	```
+* user declared: programcı tarafından bildirilmiş (user defined, defaulted or deleted).
+  ```cpp
+  Myclass();
+  Myclass() = default;
+  Myclass() = delete;
+  ```
+
+| USER DECLARES| default ctor  | destructor    | copy ctor     | copy assign   | move ctor     | move assign   |
+|--------------|---------------|---------------|---------------|---------------|---------------|---------------|
+| nothing      | defaulted     | defaulted     | defaulted     | defaulted     | defaulted     | defaulted     |
+| ctor         | not declared  | defaulted     | defaulted     | defaulted     | defaulted     | defaulted     |
+| default ctor | user declared | defaulted     | defaulted     | defaulted     | defaulted     | defaulted     |
+| destructor   | defaulted     | user declared | * defaulted   | * defaulted   | not declared  | not declared  |
+| copy ctor    | not declared  | defaulted     | user declared | * defaulted   | not declared  | not declared  |
+| copy assign  | defaulted     | defaulted     | * defaulted   | user declared | not declared  | not declared  |
+| move ctor    | not declared  | defaulted     | deleted       | deleted       | user declared | not declared  |
+| move assign  | defaulted     | defaulted     | deleted       | deleted       | not declared  | user declared |
+
+-> Compiler implicitly declares
+
+* Yıldız işareti olan durumların tercih edilmemesi gerekir, kullanıcı bu durumlarda copy member fonksiyonları kendisi yazmalıdır.
+
+```cpp
+class Myclass{ // non-copyable & non-movable
+public:
+  Myclass(const Myclass&) = delete;
+  Myclass& operator=(const Myclass&) = delete;
+  // user declared and deleted copy members: rows 5 and 6 from above table
+  // compiler does not implicitly declare move ctor and move assign
+};
+```
+
+Defaulted move members defined as deleted actually behave as not declared.
