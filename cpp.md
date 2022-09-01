@@ -975,3 +975,123 @@ delete operatörü ile bir sınıf nesnesi delete edildiğinde önce o nesneye a
 ```cpp
 void operator delete(void*); // C karşılığı free
 ```
+
+# COURSE 12
+İfadeler değil operator fonksiyonları(new() or delete()) overload edilebilir.
+* new ifadesi = operator new() => constructor
+* delete ifadesi = destructor => operator delete()
+
+C# ve Java gibi dillerde bulunan garbage collector sistemi C++'da bulunmadığı için new ile hayata gelen dinamik nesnelerin programcı tarafından delete edilmesi gerekir.
+
+new operatörü ile const bir nesne oluşturulabilir.
+```cpp
+const Myclass* p = new const Myclass{12};
+```
+array new and array delete:
+```cpp
+Myclass* p = new Myclass[5]; // ctor is called 5 times.
+delete[] p;
+```
+Static data members of a class: Sınıf nesnesinin değil, sınıfın değişkenleridir.
+```cpp
+class Myclass{
+public:
+  static int x; // declaration
+};
+int Myclass::x = 5; // definition
+```
+#### Complete Type: Derleyicinin türün geçtiği noktada sınıfın tanımını gördüğü türlere denir.
+#### Incomplete Type: Derleyicinin türün geçtiği noktada sınıfın bildirimini gördüğü türlere denir.
+```cpp
+class Myclass; // class declaration (forward declaration)
+```
++ Sınıf türünden bir pointer veya reference değişken oluşturabilir.
+	```cpp
+    Myclass* p = nullptr;
+	``` 
++ Fonksiyon bildirimlerinde parametrelerin türü veya geri dönüş türü olabilir.
+	```cpp
+    Myclass& foo(Myclass);
+	``` 
++ extern kullanılarak yapılan bildirimlerde kullanılabilir.
+	```cpp
+    extern Myclass mx[];
+	``` 
++ Type alias bildirimlerinde kullanılabilir.
+	```cpp
+    typedef Myclass* MPTR;
+    using MPTR = Myclass*;
+	``` 
++ Sınıfın static veri elemanı bildirimi yapılabilir.
+	```cpp
+    class Myclass{
+      static A ax;
+    };
+    class Myclass{
+      static Myclass mx;
+    }
+	``` 
++ Sınıfın non-static veri elemanı yapılamaz.
++ Bir sınıf türünden nesne oluşturulamaz.
++ sizeof operatörü ile kullanılamaz.
++ pointer değişken tanımlanabilir ama dereference edilemez.
+	```cpp
+    Myclass* foo();
+    int main(){
+      Myclass* p = foo();
+      auto x = *p; // syntax hatası
+    }
+	``` 
+!!! Bir header dosyasında başka bir header dosyası yalnızca forward declaration yeterli olmadığı durumlarda include edilmelidir.
+
+pimpl idiom: pointer implementation
+* Sınıfın private bölümünü başlık dosyasında gizlemek için kullanılır.
+* Implementation hakkında fikir vermek istenmeyen durumlarda tercih edilir.
+* Başka başlık dosyalarını eklemenize gerek kalmaz, kodun diğer dosyalara olan bağımlılığını azaltır.
+
+Sınıfın static veri elemanı main fonksiyon çağrılmadan önce hayata gelir ve bu veri elemanını kullanmak için sınıf türünden bir nesneye ihtiyaç yoktur.
+```cpp
+Myclass::x = 5;
+```
+Sınıf objesi üzerinden de sınıfın static veri elemanına erişilebilir.
+```cpp
+Myclass m;
+Myclass* p = &m;
+Myclass::x = 5;  // changes static member variable of class
+p->x = 6;        // changes static member variable of class
+m.x = 7;         // changes static member variable of class
+```
+Bir sınıfın const ve integral type olan static değişkenlerine sınıf bildirimi içinde ilk değer verilebilir.
+```cpp
+class Myclass{
+  static int x = 10;               // geçersiz
+  static const int y = 5;          // geçerli
+  static const double z = 2.0;     // geçersiz
+  static constexpr int t = 7;      // geçerli
+  static constexpr double k = 3.4; // geçerli
+};
+```
+#### inline variables
+```cpp
+// header file  |
+extern int x;   |  // header file
+                |  inline int x = 10;
+// source file  |   
+int x = 10;     |
+```
+In C++17, we can initialize the static variables inside the class using inline variables.
+```cpp
+class Myclass {
+public:
+  inline static int x = 10; // geçerli
+};
+inline void foo(){}
+```
+Static member functions of a class;
+* Sınıf nesnesinin değil, sınıfın üye fonksiyonudur.
+* this pointerları yoktur, bu nedenle sınıfın non-static üye elemanlarını kullanamaz, üye fonksiyonlarını çağıramaz.
+* this pointerları olmadığı için const olamaz. e.g. static void foo() const; // geçersiz
+* Global fonksiyonlara göre farkları;
+	* namespace scope yerine class scope,
+	* sınıfın private bölümüne erişimi var,
+	* access kontrole tabidir.
