@@ -1095,3 +1095,131 @@ Static member functions of a class;
 	* namespace scope yerine class scope,
 	* sınıfın private bölümüne erişimi var,
 	* access kontrole tabidir.
+
+# COURSE 13
+Sınıfın static veri elemanı kullanım örnekleri:
+* Bir sınıf türünden üretilen nesnelerin sayısını saymak (kaçı hayatta, toplam kaç tane üretildi vs)
+* Sınıf nesnelerinin birbirlerine erişimini sağlamak (hayata gelen nesnelerin adreslerini container oluşturup saklamak - inline static std::vector<Fighter*> vec;)
+
+!!! Header dosyaları içerisinde "using" bildirimi yapılmaz.
+#### named constructor idiom: Client kodların constructora doğrudan çağrı yapmaları yerine static bir üye fonksiyon çağrılarak nesne oluşturulması durumudur.
+```cpp
+class Myclass{
+public:
+  static Myclass* createObject(){
+    return new Myclass;
+  }
+private:
+  Myclass();
+};
+```
+Singleton: Creational design pattern; ensures only one instance of an object is created. Also, global access should be provided.
+```cpp
+class Singleton{
+public:
+  static Singleton& get_instance(){
+    if(!mp)                  // Meyer's Singleton
+      mp = new Singleton;    // static Singleton mp;
+    return *mp;              // return mp;
+  }
+  Singleton(const Singleton&) = delete;
+  Singleton& operator=(const Singleton&) = delete;
+  void foo();
+private:
+  Singleton();
+  inline static Singleton* mp = nullptr;
+};
+
+int main(){
+  Singleton::get_instance().foo();
+}
+```
+Sınıfın static veri elemanına ilk değer veren ifadelerdeki isimler önce class scope içerisinde aranır.
+```cpp
+class Myclass{
+public:
+  static int foo(){return 1;}
+  static int x;
+};
+int foo(){return 2;}
+int Myclass::x = foo(); // önce class scope bakıldığı için, x = 1
+```
+#### friend: Bir sınıfın private bölümüne sınıf dışından erişimi sağlar.
+* Bir global fonksiyon (namespace) için yapılabilir.
+    ```cpp
+    class Myclass {
+    public:
+      friend int func();
+    private:
+      int mx;
+      void foo();
+    };
+    
+    Myclass n;
+    int func(){
+      Myclass m;
+      m.mx = 10; // valid
+      m.foo();   // valid
+      n.mx = 7;  // valid
+    }
+	```
+* Bir başka sınıfın üye fonksiyonu için yapılabilir, sınıf complete type olmalıdır.
+    ```cpp
+    class Data {
+    public:
+      int func(int);
+    };
+    class Myclass {
+    public:
+      friend int Data::func(int);
+    private:
+      int mx;
+    };
+    
+    int Data::func(int x){
+      Myclass m;
+      m.mx = x; // valid
+    }
+	```
+* Bir sınıf için yapılabilir, complete type olma şartı yoktur.
+    ```cpp
+    class Data {
+    public:
+      int func(int);
+    };
+    class Myclass {
+    public:
+      friend class Data;
+    private:
+      int mx;
+    };
+    
+    int Data::func(int x){
+      Myclass m;
+      m.mx = x; // valid
+    }
+	```
+	!!! friend bildiriminin sınıfın public, private veya protected alanında yapılması arasında herhangi bir fark yoktur.
+	#### Operator Overloading: Bir sınıf nesnesinin bir operatörün operandı yapıldığında derleyicinin ifadeyi bir fonksiyon çağrısına dönüştürmesine denir. Bu şekilde çağrılan fonksiyonlara operator functions denir. Bu fonksiyonlar global operator functions ve (non-static) member operator functions olarak iki çeşittir.
+* Compile-time'a yöneliktir, run-time için herhangi bir ek maliyet getirmez.
+* Sınıfı kullanan programcıların daha kolay kod yazmasını sağlar.
+    ```cpp
+    if(is_equal(a.multiply(b).add(c),x))  =>  if(a*b+c == x)
+	```
+* C++ dilinde olmayan operatör overload edilemez, e.g. a@b.
+* Operandlardan en az birinin sınıf türünden veya enum türünden olması gerekir.
+* Bazı operatörler overload edilemez ( :: , . , ? , sizeof , typeid, .*)
+* Bazı operatörler global olarak overload edilemez ([ ] , ( ) , typecast , -> , =)
+* ( ) operatörü hariç operatör fonksiyonları default argument alamaz.
+* Operatör fonksiyonlarında operatörlerin arity özelliği(binary(+ , <) - unary(! , ~) değiştirilemez.
+    ```cpp
+          -global op-     -member op-
+    !x   operator!(x)    x.operator!()
+    a>b  operator>(a,b)  a.operator>(b)
+	```
+* Operatörlerin öncelik seviyesi(priority-precedence) ve öncelik yönü(associativity) değiştirilemez.
+    ```cpp
+    x = !a * b + c > d;
+    x.operator=(operator>(operator+(operator*(operator!(a),b),c),d))  // hepsi global op. (except = )
+    x.operator=(a.operator!().operator*(b).operator+(c).operator>(d)) // hepsi member operator
+    ```
