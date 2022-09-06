@@ -1223,3 +1223,166 @@ int Myclass::x = foo(); // önce class scope bakıldığı için, x = 1
     x.operator=(operator>(operator+(operator*(operator!(a),b),c),d))  // hepsi global op. (except = )
     x.operator=(a.operator!().operator*(b).operator+(c).operator>(d)) // hepsi member operator
     ```
+
+# COURSE 14
+Neden global operator fonksiyonlar var?
+* 10 + x işlemi bu sırayla bir üye operatör fonksiyonu yardımıyla yazılamaz. e.g., operator+(10, x)
+* Kullanmak istenilen yapı üçüncü parti bir sınıfa ait olabilir. Dolayısıyla o sınıfların koduna müdahale edilemeyeceğinden global operatör fonksiyonu yazılır.
+
+L-value expression oluşturan ifadelere karşılık gelen operatör fonksiyonlarının geri dönüş değeri referans olmalıdır. e.g., =, ++(prefix), --(prefix).
+```cpp
+class A{
+public:
+  bool operator<(const A&) const;
+  A& operator+=(const A&);
+};
+```
+Bazı operatörlerin const ve const olmayan nesneler için ayrı ayrı overload edilmesi gerekir.
+```cpp
+class Vector{
+public:
+  int& operator[](size_t);            // vec[5]
+  const int& operator[](size_t)const; //cvec[5]
+};
+```
+Simetrik binary operatörlerin global overload edilmesi önerilir. e.g., >
+Sınıf nesnesini değiştiren(yan etkisi olan) operatör fonksiyonlarının üye operatör fonksiyonu olması önerilir. e.g., ++. İstisnası enum türleridir, mecburen global olarak overload edilirler.
+
+int wrapper örneği - stream operatörlerini overload etme
+```cpp
+// mint.h
+#include <iosfwd> // <ostream> yerine daha hafif, sadece incomplete declaration içerir.
+class Mint{
+public:
+  explicit Mint(int x = 0) : mval{x}{}
+  friend std::ostream& operator<<(std::ostream&, const Mint&);
+  friend std::istream& operator>>(std::istream&, Mint&);
+  friend bool operator<(const Mint& x, const Mint& y){
+    return x.mval < y.mval;
+  }
+  friend bool operator==(const Mint& x, const Mint& y){
+    return x.mval == y.mval;
+  }
+private:
+  int mval;
+};
+```
+```cpp
+// mint.cpp
+#include "mint.h"
+#include <ostream>
+#include <istream>
+
+std::ostream& operator<<(std::ostream& os, const Mint& m){ // inserter
+  return os << "(" << m.mval << ")";
+}
+std::istream& operator>>(std::ostream& is, Mint& m){ // extractor
+  return is >> m.mval;
+}
+```
+```cpp
+// main.cpp
+int main(){
+  Mint a, b, c;
+  std::cout << a << " " << b << " " << c << "\n";
+}
+```
+
+STL containerları(vector, map etc.) ile user-defined türler kullanılacağı zaman operator< overload edilmelidir, aksi halde syntax hatası alınır. Bazı durumlarda operator== da overload edilmelidir.
+
+equality -> a == b 
+
+equivalence -> !(a < b) && !(b < a)
+
+Aritmetik operatörlerde + ve += gibi ilişkili operatörler beraber overload edilmelidir.
+```cpp
+class Mint{
+public:
+  Mint& operator+=(const Mint& r){
+    mval += r.mval;
+    return *this;
+  }
+private:
+  int mval;
+};
+
+inline Mint operator+(const Mint& left, const Mint& right){
+  return Mint{left} += right;
+}
+or alternatively
+inline Mint operator+(Mint& left, const Mint& right){
+  return left += right; // copy elision for left
+}
+```
+Unary operatörlerin overload edilmesi
+```cpp
+Mint operator+()const{
+  return *this;
+}
+Mint operator-()const{ // sign operator
+  return Mint{-mval};
+}
+Mint& operator++(){ // prefix
+  ++mval;
+  return *this;
+}
+Mint operator++(int){ // postfix, int is a dummy parameter
+  Mint temp{*this};
+  ++*this; // operator++();
+  return temp;
+}
+```
+
+array elemanına ulaşma
+```cpp
+int a[3] = {5, 7, 9};
+cout << a[1] << 1[a] << *(a + 1) << *(1 + a); // output: 7777 all same!
+```
+operator [ ] fonksiyonunun overload edilmesi için sınıfın array-like veya pointer-like olması beklenir.
+```cpp
+class Array{
+public:
+  explicit Array(size_t n) : msize{n}, mp{new int[msize]}{}
+  size_t size() const{ return msize; }
+  int& operator[](size_t idx){
+    return mp[idx];
+  }
+  const int& operator[](size_t idx)const{
+    return mp[idx];
+  }
+private:
+  size_t msize;
+  int* mp;
+};
+```
+
+dereferencing(indirection - *ptr) operatörün overload edilmesi pointer-like sınıflar için yapılır. Iterator veya smart pointer sınıfları örnek verilebilir.
+
+ok operatörü binary bir operatör olmasına rağmen unary olarak overload edilir.
+```cpp
+p->x   =>   p.operator->()->x
+```
+```cpp
+class Smartptr{
+public:
+  Smartptr() : mp{nullptr}{}
+  Smartptr(Resource* p) : mp{p}{}
+  Smartptr(const Smartptr&) = delete;            // non-copyable due to these two delete
+  Smartptr& operator=(const Smartptr&) = delete; // non-copyable due to these two delete
+  Smartptr(Smartptr&& other) : mp{other.mp}{
+    other.mp = nullptr;
+  }
+  ~Smartptr(){
+    if(mp)
+      delete mp;
+  }
+  Resource& operator*(){
+    return *mp;
+  }
+  Resource* operator->(){
+    return mp;
+  }
+private:
+  Resource* mp;
+};
+```
