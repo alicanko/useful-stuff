@@ -1386,3 +1386,138 @@ private:
   Resource* mp;
 };
 ```
+
+# COURSE 15
+#### function call operator ( ):
+C dilinde foo() bir fonksiyon, function pointer veya fonksiyonel makro olabilir.
+C++ dilinde ise yukarıdakilere ek olarak bir sınıf nesnesi de olabilir.
+Fonksiyon çağrı operatörünü overload edilerek, sınıf nesnelerin fonksiyon çağrı operatörünün operandı olarak kullanabilen sınıflara "functor class" denir.
+Default argument alabilen tek operatör fonksiyonudur.
+```cpp
+class Functor{
+public:        // parametresiz veya birden fazla parametreli olabilir.
+  void operator()(int x = 5){} // dönüş türü farklı olabilir.
+};
+```
+typecast operator functions:
+```cpp
+class Counter{
+public:
+  explicit operator int() const {
+    return mval;
+  }
+private:
+  int mval;
+};
+
+int main(){
+  Counter c{4};
+  int ival = static_cast<int>(c);
+  // int ival = c; syntax hatası çünkü explicit.
+  
+  /* explicit olmasına rağmen logic context için kullanıldığında
+  implicit dönüşüm yapılır. e.g; if, while, !, &&, ?, ||  */
+  unique_ptr<int> uptr {new int{5}};
+  if(uptr) // if(uptr.operator bool())
+    cout << "this is not a null pointer";
+}
+```
+enum class tipi değişkenler için global operator overload function yazılır.
+```cpp
+enum class Weekday{Monday, Tuesday, Wednesday, Thursday, Friday};
+Weekday& operator++(Weekday& wd){ // prefix
+  return wd = wd == Weekday::Friday ? Weekday::Monday : static_cast<Weekday>(static_cast<int>(wd)+1);
+}
+std::ostream& operator<<(std::ostream& os, const Weekday& wd){
+  static const char* const pdays[]{
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+  };
+  return os << pdays[static_cast<int>(wd)];
+}
+
+int main(){
+  Weekday wd{Weekday::Monday};
+  ++wd;
+  cout << wd;
+}
+```
+#### Delegating Constructor (C++ 11)
+```cpp
+class Myclass{
+public:
+  Myclass(int x, int y, int z) : mx(x), my(y), mz(z){}
+  Myclass(int a) : Myclass(a, a, a){} // delegating ctor
+private:
+  int mx, my, mz;
+};
+```
+if with initializer:
+```cpp
+if(int x = foo()) // C++'in ilk standartlarından beri mevcut, C'de yok.
+if(int x = foo(); x > 10) // C++17'de eklendi, if with initializer.
+```
+#### Structured Binding
+```cpp
+struct Data{
+  int a, b;
+  double c;
+};
+
+int main(){
+  Data mydata = {10, 20, 1.3};
+  auto [x, y, z] = mydata; // genelde ihtiyaç olmayan yerine _ kullanılır.
+  // auto [x, y, _] = mydata; 
+}
+```
+```cpp
+struct Person{
+  std::string name;
+  int age;
+  double wage;
+};
+Person get_person(){
+  return {"alican", 30, 5000.0};
+}
+
+int main(){
+  if(auto [name, age, salary] = get_person(); age > 40){...}
+}
+```
+Structured binding in range based for loop:
+```cpp
+for(auto person: pvector) -> for(auto [name, age, wage] : pvector)
+```
+Structured binding yaparken derleyici eşitliğin sağındaki yapı ifadesinden bir nesne oluşturmuş gibi davranır.
+```cpp
+struct myStruct{
+  int a[5];
+  double dval;
+};
+
+int main(){
+  myStruct ms;
+  auto [arr, salary] = ms; // arr türü pointer değil int[5].
+}
+```
+#### Reference Qualifiers
+```cpp
+class Myclass{
+public:
+  void func()& { }
+  void func()const& { }
+  void func()&& { }
+  void func()const&& { }
+};
+
+int main(){
+  Myclass m;
+  const Myclass cm;
+
+  m.func();         // void func()&
+  cm.func();        // void func()const&
+  Myclass{}.func(); // void func()&&
+  move(m).func();   // void func()&&
+  move(cm).func();  // void func()const&&
+}
+```
+
