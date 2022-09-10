@@ -1521,3 +1521,90 @@ int main(){
 }
 ```
 
+# COURSE 16
+#### Trailing Return Type: 
+```cpp
+int func(){ }
+auto func()->int{ } // same with above
+```
+Useful in function templates when the type of the return value depends on template parameters. When auto is used in conjunction with a trailing return type, it just serves as a placeholder for whatever the decltype expression produces, and does not itself perform type deduction.
+```cpp
+template<typename Lhs, typename Rhs>
+auto Add(const Lhs& lhs, const Rhs& rhs) -> decltype(lhs + rhs)
+{
+  return lhs + rhs;
+}
+```
+#### Nested Types (Type Members): A type that declared within the scope of another class.
+To refer to a nested class from a scope other than its immediate enclosing scope, you must use a fully qualified name.
+```cpp
+class Enclosed{ // Enclosing class, nested type'ın private alanına erişemez.
+  class Nested{ // Nested type, enclosing class'ın private alanına erişebilir.
+    int x;
+  };
+  enum Color{White, Black};
+  typedef int Word; // using Word = int;
+public:
+  static Nested foo;
+};
+
+int main(){
+  auto x = Myclass::foo(); // valid
+  Enclosed::Nested y = Enclosed::foo(); // not valid since Nested has only private access.
+}
+```
+
+Sınıfa başka bir sınıf türünden static veri elemanı koyulacaksa bu sınıfların tanımını içeren başlık dosyalarını include etmek yerine forward declaration kullanılmalıdır. Aynı durum veri elemanları pointer veya referans ise de geçerlidir.
+
+#### Composition
+An object is a part of another object. The object that is a part of another is known as a subobject. When a composition is destroyed, then all of its subobjects are destroyed as well.
+```cpp
+class Member{}; // member class
+class Owner{   // owner class
+  Member mx;
+public:
+  Owner(const Owner& other) : mx(other.mx); // ctor initializer list
+};
+
+int main(){
+  Owner ox; // Member ctor->Owner ctor->Owner dtor->Member dtor
+}
+```
+!!! Eğer owner class için copy ctor yazılırsa, member classların copy ctor ile hayata getirilebilmesi için constructor initializer list kullanılmalıdır. Aksi halde default ctor'ları çağrılır.
+```cpp
+class Person{
+public:
+  Person(const char* pname){ // önce ctor çağrılır, sonra copy assignment yapılır.
+    mname = pname;
+  }
+private:
+  std::string mname;
+};
+
+class Person{
+public:
+  Person(const char* pname) : mname(pname){ } // doğrudan parametreli ctor çağrılır.
+private:
+  std::string mname;
+};
+```
+
+#### Namespaces
+A namespace is a declarative region that provides a scope to the identifiers (the names of types, functions, variables, etc.) inside it. Namespaces are used to organize code into logical groups and to prevent name collisions that can occur especially when your code base includes multiple libraries.
+```cpp
+namespace myspace{
+  int x = 10;
+}
+namespace myspace{
+  int y = 5;
+}
+// derleyici üstteki alanları kümülatif olarak değerlendirir ve birleştirir.
+using namespace myspace;
+int main(){
+  myspace::x = 7;
+  myspace::y = 6;
+  x = 5;
+  y = 4; 
+}
+```
+
