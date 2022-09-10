@@ -1608,3 +1608,90 @@ int main(){
 }
 ```
 
+# COURSE 17
+using bildiriminin kapsamı(scope) vardır.
+```cpp
+namespace ns{
+  int x;
+}
+void func(){
+  using ns::x; // sadece func() içinde x kullanılabilir.
+  x = 5;       // 'int x' şeklinde yeni bir değişken tanımlanamaz.
+}              // 'using namespace ns' kullanılsaydı 'int x' yapılabilirdi.
+```
+
+#### Argument Dependent Lookup (ADL): Koenig lookup
+The compiler can use argument-dependent name lookup to find the definition of an unqualified function call. The type of every argument in a function call is defined within a hierarchy of namespaces, classes, structures, unions, or templates. When you specify an unqualified postfix function call, the compiler searches for the function definition in the hierarchy associated with each argument type.
+```cpp
+namespace ns{
+  class Myclass{};
+  void foo(std::vector<Myclass>){ }
+  void func(int){ }
+}
+
+int main(){
+  std::vector<ns::Myclass> myvec;
+  foo(myvec); // valid, the compiler finds ns::foo() in namespace ns, which is where the type of argument myvec is defined.
+  func(67);   // not valid.
+}
+```
+ADL'nin bir önceliği yoktur. Global namespace içerisinde aynı isimli bir fonksiyon ile isim çakışması durumunda compiler hatası alınır.
+
+#### std::endl
+Inserts a newline character into the output sequence os and flushes it as if by calling os.put(os.widen('\n')) followed by os.flush(). Try to use '\n' if flushing is not necessary.
+
+#### inline namespaces
+In contrast to an ordinary nested namespace, members of an inline namespace are treated as members of the parent namespace. This characteristic enables argument dependent lookup on overloaded functions to work on functions that have overloads in a parent and a nested inline namespace. It also enables you to declare a specialization in a parent namespace for a template that is declared in the inline namespace.
+```cpp
+namespace A{
+  namespace B{
+    inline namespace C{
+      int x;
+    }
+  }
+}
+
+int main(){
+  A::B::x = 7; // do not need to specify namespace C.
+}
+```
+
+#### Anonymous(unnamed) namespaces
+Useful when you want to make variable declarations invisible to code in other files (i.e. give them internal linkage) without having to create a named namespace. All code in the same file can see the identifiers in an unnamed namespace but the identifiers, along with the namespace itself, are not visible outside that file—or more precisely outside the translation unit.
+```cpp
+namespace { 
+  int MyFunc(){} 
+}
+```
+
+const değişkenler global olmaları durumunda default olarak internal linkage ile bağlanır. Dolayısıyla header dosyasında const değişken tanımı yapılırsa ODR ihlal edilmiş olmaz; header dosyasının include edildiği her kaynak dosyasında ayrı bir değişken hayata gelmiş olur. Eğer bu değişken inline anahtar sözcüğü ile nitelendirse yalnızca tek bir değişken hayata gelir.
+
+#### Namespace aliases
+Namespace names need to be unique, which means that often they should not be too short. If the length of a name makes code difficult to read, or is tedious to type in a header file where using directives can't be used, then you can make a namespace alias which serves as an abbreviation for the actual name.
+```cpp
+namespace a_very_long_namespace_name { class Foo {}; }
+namespace AVLNN = a_very_long_namespace_name;
+void Bar(AVLNN::Foo foo){ }
+```
+
+### std::string
+size: Returns the number of elements in the string.
+capacity: Returns the number of characters that the string has currently allocated space for.
+
+The Small Buffer Optimization (SBO) is a well-known optimization technique that can reduce the number of dynamic memory allocations that occur at program execution time. Stack memory allocations are faster than heap memory allocations. The idea behind SBO is that if an object that would normally be created on the heap is small enough to fit inside of a small buffer allocated for the object, the application will use the buffer for storage instead of requesting memory to be allocated dynamically from the heap. This reduces the runtime overhead typically associated with dynamic memory allocation and can thereby improve runtime performance.
+
+Eğer baştan yazının ulaşacağı maksimum uzunluk biliniyorsa bellek alanı reserve fonksiyonu ile tek seferde ayrılabilir. Bu şekilde birden fazla reallocation yapılmanın önüne geçilebilir.
+
+Dinamik dizilerde capacity otomatik olarak artırılır ama otomatik olarak azaltılmaz. shrink() fonksiyonu ile kapasite daraltma yapılabilir.
+
+string ifadesinin son elemanı bir pointer ile tutulduğundan sabit zamanda O(1) sondan ekleme veya çıkarma yapılabilir.
+
+STL containers -> Sequence containers -> vector, deque, list, forward_list, array, string
+
+```cpp
+string str;
+str.size();        // str.length() de kullanılabilir.
+str.empty();       // bool olarak boş olup olmadığını döner.
+str.capacity();    // bellek alanının alabileceği max karakter, taşarsa reallocation.
+str.reserve(500);  // reserve edilen alan tam olarak verilen sayı olmayabilir.
+```
