@@ -1695,3 +1695,80 @@ str.empty();       // bool olarak boş olup olmadığını döner.
 str.capacity();    // bellek alanının alabileceği max karakter, taşarsa reallocation.
 str.reserve(500);  // reserve edilen alan tam olarak verilen sayı olmayabilir.
 ```
+
+# COURSE 18
+string, basic_string sınıf şablonu kullanılarak oluşturulur.
+```cpp
+string => basic_string<char, char_traits<char>, allocator<char>>
+```
+#### std::basic_string<CharT,Traits,Allocator>::npos
+This is a special value equal to the maximum value representable by the type size_type. The exact meaning depends on context, but it is generally used either as end of string indicator by the functions that expect a string index or as the error indicator by the functions that return a string index.
+
+#### std::initializer_list (not to be confused with member initializer list)
+initializer_list bir fonksiyona argüman olarak verilirken her zaman referans semantiği ile geçer, kopyalama yapılmaz. Bu nedenle fonksiyon parametresinde const veya ref diye belirtmek gereksiz (const& by default). initializer_list öğeleri değiştirilemez.
+```cpp
+std::initializer_list<int> mylist{2, 5, 8};
+class Myclass{
+public:
+  Myclass(std::initializer_list<int>);
+  Myclass(int);
+};
+
+int main() {
+  Myclass m1{15}; // calls 1st constructor
+  Myclass m2(12); // calls 2nd constructor
+}
+```
+
+Birden fazla kez bir fonksiyonu çağırmak için;
+```cpp
+for (auto val : {5, 7, 9})
+{
+  func(val);
+}
+```
+
+containerların begin() fonksiyonu containerda tutulan ilk öğenin konumunu döndürür. end() üye fonksiyonu ise sondan bir sonraki olmayan bir öğenin konumunu döndürür. Dizilerin de aynı semantik yapıyı kullanabilmesini sağlayan global begin() ve end() fonksiyonları da vardır.
+```cpp
+vector<int> ivec{2, 4, 6}; // ivec.begin(), ivec.end()
+int a[]{2, 4, 6}; // begin(a), end(a)
+```
+
+String içinde tutulan yazının başlangıç adresini elde etmek için;
+```cpp
+str.c_str() or 
+str.data() or 
+&str[0] or 
+&*str.begin()
+```
+
+Reference to the last element of a non-empty string;
+```cpp
+str[str.size() - 1] or
+str.at(str.size() - 1) or
+str.back() or
+*(str.end() - 1) or
+*str.rbegin()
+```
+
+c_str fonksiyonu ile elde edilen pointer, reallocation vs sebeplerle dangling pointer haline gelebilir.
+```cpp
+std::string str{"football"};
+const char* p = str.c_str();
+str += "coming home"; // if reallocation, p will be a dangling pointer
+```
+
+std::basic_string<CharT,Traits,Allocator>::at function returns a reference to the character at specified location pos. Bounds checking is performed, exception of type std::out_of_range will be thrown on invalid access.
+```cpp
+string str{"ali"};
+auto c = str[5];     // undefined behaviour, no exception 
+auto cc = str.at(5); // out-of-range exception
+```
+
+Range-based for loops:
+```cpp
+for (auto val : con) -> val local variable, kopyalama yapılır
+for (auto& val : con) -> containerdaki öğeye referans, yazma amaçlı
+for (const auto& val : con) -> containerdaki öğeye const referans, okuma amaçlı
+for (auto&& val : con) -> forwarding reference
+```
