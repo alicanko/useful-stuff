@@ -1772,3 +1772,72 @@ for (auto& val : con) -> containerdaki öğeye referans, yazma amaçlı
 for (const auto& val : con) -> containerdaki öğeye const referans, okuma amaçlı
 for (auto&& val : con) -> forwarding reference
 ```
+
+# COURSE 19
+### Inheritance
+There are 3 types; public inheritance, private inheritance, protected inheritance
+
+super class(parent, base) - subclass(child, derived). e.g. Car - Mercedes
+
+Polo -> VW -> Car (multi-level inheritance)
+
+Fax + Modem -> FaxModem (multiple inheritance)
+
+Base class must be a complete type for inheritance.
+
+```cpp
+class Base {};
+class Der : public Base {}; // by default private inheritance
+struct Der : Base {};       // by default public inheritance
+```
+```cpp
+class Base{
+public:
+  void func(int);
+};
+class Der : public Base{
+public:
+  void func(int, int);
+};
+
+int main(){
+  Der myder;       // Base default ctor->Der default ctor->Der dtor->Base dtor
+  myder.func(12);  // syntax error, few arguments
+  myder.Base::func(12);
+  // No function overloading due to different scopes. First, name lookup is done for derived class. 
+  // When it finds the function, it stops. So it has a function with two arguments, not one.
+}
+```
+Implicit type conversion is possible from derived class to base class (upcasting).
+```cpp
+Base *ptr = &derived_obj;
+```
+Explicit type cast is required in downcasting.
+```cpp
+Der *ptr = (Der *)&base_obj;
+```
+Object slicing
+```cpp
+class Base{
+  int x, y;
+};
+class Der : public Base{
+  int z;
+};
+
+int main(){
+  Der derived_obj;
+  Base base_obj;
+  base_obj = derived_obj; // z is sliced off
+}
+```
+```cpp
+class Base{
+public:
+  Base(int x){}
+};
+class Der : public Base{
+public:
+  Der(int a, int b) : Base(a){} // since there is no default ctor for Base
+};
+```
