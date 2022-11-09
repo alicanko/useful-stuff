@@ -1841,3 +1841,83 @@ public:
   Der(int a, int b) : Base(a){} // since there is no default ctor for Base
 };
 ```
+
+# COURSE 20
+```cpp
+class Base{
+public:
+  void func(int);
+};
+class Der : public Base{
+public:
+  using Base::func;
+  void func(double);
+};
+
+int main(){
+  Der myder;
+  // If there were Der::func(int) function, it will be called.
+  // Without using declaration Der::func(double) will be called.
+  myder.func(12);  // Base::func(int)
+  myder.func(1.2); // Der::func(double)
+}
+```
+
+```cpp
+class Base{
+protected:
+  void func(int);
+};
+class Der : public Base{
+public:
+  using Base::func;
+};
+
+int main(){
+  Der myder;
+  myder.func(12); // Without using declaration, there will be syntax error.
+}
+```
+
+### Runtime Polymorphism(Late Binding/Dynamic Polymorphism):
+This type of polymorphism is achieved by Function Overriding. The compiler determines which function call to bind to the object after deducing it at runtime.
+```cpp
+class Airplane{
+public:
+  void takeoff();
+  virtual void land();    // virtual function => makes it polymorphic class
+  virtual void fly() = 0; // pure virtual function => makes it abstract class
+};
+```
+
+#### Virtual Dispatch
+Eğer base sınıfın bir virtual fonksiyonu bir base sınıf pointerı veya referansı ile çağrılırsa, çalışma zamanında çağrılan fonksiyon o pointer veya referans hangi türden sınıf nesnesine bağlanmışsa o sınıfın üye fonksiyonu olur.
+```cpp
+class Base{
+public:
+  virtual void func(int, int);
+};
+class Der : public Base{
+public:
+  void func(int, int) override; // virtual keyword is optional here.
+  void foo() { func(8, 6); }
+};
+
+int main(){
+  Der myder;
+  Base* baseptr = &myder;
+  baseptr->func(3, 5); // Der::func(int, int) is called.
+  myder.foo();         // inside the function, Der::func(int, int) is called.
+}
+```
+Base sınıfın virtual fonksiyonunu override eden derived sınıf fonksiyonu, bildiriminde virtual anahtar sözcüğü kullanılsa da kullanılmasa da virtual olur. Derived sınıf, base sınıf olarak kullanılıp bir kez daha türetilirse virtual dispatch mekanizması devam eder.
+
+override contextual keyword: Base sınıf içerisinde aynı imzalı virtual fonksiyon yoksa syntax hatası olur. Derleyici kontrolü sayesinde gözden kaçabilecek durumlar engellenir.
+
+virtual and override keywords are used only on declarations.
+
+Virtual Dispatch mekanizmasının devreye girmediği durumlar:
+1) Fonksiyon çağrısı pointer/referans yerine doğrudan base sınıf türünden bir değişken ile yapılırsa.
+2) Fonksiyon çağrısında nitelenmiş isim kullanılırsa. e.g. carptr->Car::run();
+3) Base sınıf constructorı içerisinde sınıfın bir virtual fonksiyonuna çağrı yapılırsa (Derived sınıf henüz var olmadan fonksiyonuna çağrı yapılmış olunur).
+4) Base sınıf destructorı içerisinde sınıfın bir virtual fonksiyonuna çağrı yapılırsa (Hayatı sona ermiş derived sınıf için fonksiyon çağrısı yapılmış olunur).
