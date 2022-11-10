@@ -1921,3 +1921,122 @@ Virtual Dispatch mekanizmasının devreye girmediği durumlar:
 2) Fonksiyon çağrısında nitelenmiş isim kullanılırsa. e.g. carptr->Car::run();
 3) Base sınıf constructorı içerisinde sınıfın bir virtual fonksiyonuna çağrı yapılırsa (Derived sınıf henüz var olmadan fonksiyonuna çağrı yapılmış olunur).
 4) Base sınıf destructorı içerisinde sınıfın bir virtual fonksiyonuna çağrı yapılırsa (Hayatı sona ermiş derived sınıf için fonksiyon çağrısı yapılmış olunur).
+
+# COURSE 21
+NVI(Non-Virtual Interface) Idiom:
+To modularize/refactor common before and after code fragments (e.g., invariant checking, acquiring/releasing locks) for an entire class hierarchy at one location. Also known as, Template Method - a more generic pattern. Non-Virtual Interface (NVI) idiom allows us to refactor before and after code fragments at one convenient location - the base class.
+```cpp
+class Base{
+private:
+  virtual void foo();
+public:
+  void bar(){
+    // some code
+    foo();
+    // some more code
+  }
+};
+class Der : public Base{
+public:
+  void foo() override;
+};
+
+void gfunc(Base& baseref){
+  baseref.bar();
+}
+```
+The NVI idiom is based on 4 guidelines outlined by Herb Sutter;
+1. Prefer to make interfaces non-virtual, using Template Method design pattern.
+2. Prefer to make virtual functions private.
+3. Only if derived classes need to invoke the base implementation of a virtual function, make the virtual function protected.
+4. A base class destructor should be either public and virtual, or protected and non-virtual. 
+
+#### Virtual Table:
+To implement virtual functions, C++ uses a special form of late binding known as the virtual table. The virtual table is a lookup table of functions used to resolve function calls in a dynamic/late binding manner. The virtual table sometimes goes by other names, such as “vtable”, “virtual function table”, “virtual method table”, or “dispatch table”.
+
+ First, every class that uses virtual functions (or is derived from a class that uses virtual functions) is given its own virtual table. This table is simply a static array that the compiler sets up at compile time. A virtual table contains one entry for each virtual function that can be called by objects of the class. Each entry in this table is simply a function pointer that points to the most-derived function accessible by that class.
+Second, the compiler also adds a hidden pointer that is a member of the base class, which we will call *__vptr. *__vptr is set (automatically) when a class object is created so that it points to the virtual table for that class. Unlike the *this pointer, which is actually a function parameter used by the compiler to resolve self-references, *__vptr is a real pointer. Consequently, it makes each class object allocated bigger by the size of one pointer. It also means that *__vptr is inherited by derived classes, which is important.
+
+Calling a virtual function is slower than calling a non-virtual function for a couple of reasons: First, we have to use the *__vptr to get to the appropriate virtual table. Second, we have to index the virtual table to find the correct function to call. Only then can we call the function. As a result, we have to do 3 operations to find the function to call, as opposed to one operation for a direct function call. Also, any class that uses virtual functions has a *__vptr, and thus each object of that class will be bigger by one pointer. Finally, there is allocation for virtual tables on heap.
+
+Virtual Constructor Idiom:
+To create a copy of an object or a new object without knowing its concrete type. Also known as, Factory Method of initialization.
+You cannot copy an object unless you know its static type, because the compiler must know the amount of space it needs to allocate. Therefore we cannot copy an object of derived type directly through a pointer to its base.
+```cpp
+class Base{
+public:
+  virtual ~Base() {}
+  virtual Base* clone() const = 0;
+};
+class Der : public Base{
+public:
+  Der* clone() const override { return new Der(*this);}
+};
+Base* game(Base* p){
+  return p->clone();
+}
+```
+
+Virtual Destructor:
+Deleting a derived class object using a pointer of base class type that has a non-virtual destructor results in undefined behavior. To correct this situation, the base class should be defined with a virtual destructor. 
+```cpp
+Base* p = new Der;
+delete p; // first ~Der(), then ~Base() is called.
+// if base dtor is not virtual, then only ~Base() will be called.
+```
+
+Covariant Return Type:
+A covariant return type of a function is one that can be replaced by a narrower type when the method is overridden in a subclass.
+To avoid unnecessary casting of the derived value returned from an overridden method in a derived class. 
+A base class determines the method signatures of virtual functions that derived classes might override. The type of the return value in the overridden function is generally same as that of the base class's function. However, this can be limiting if the type returned by the overridden function is substitutable (sub-class) for the type of the base function.
+```cpp
+class Base{
+public:
+  virtual Base* clone() const{ return new Base(*this);}
+};
+class Der : public Base{
+public:
+  Der* clone() const override { return new Der(*this);}
+};
+int main(){
+  Der* d1 = new Der();
+  Der* d2 = d1->clone();
+  // If return type of subclass' function clone() would be Base*, then;
+  // Base* b = d1->clone();
+  // Der* d2 = dynamic_cast<Der*>(b);
+}
+```
+
+Inherited Constructor:
+For base-class constructors, C++11 allows a class to specify that base class constructors will be inherited. Thus, the C++11 compiler will generate code to perform the inheritance and the forwarding of the derived class to the base class. This is an all-or-nothing feature: either all of that base class's constructors are forwarded or none of them are. Also, an inherited constructor will be shadowed if it matches the signature of a constructor of the derived class, and restrictions exist for multiple inheritance: class constructors cannot be inherited from two classes that use constructors with the same signature.
+```cpp
+class Base{
+public:
+  Base() = default;
+  Base(double);
+  Base(int, int);
+};
+class Der : public Base{
+public:
+  using Base::Base;
+  Der(int, int);
+};
+int main(){
+  Der myder(6.7);     // Base(double) is called.
+  Der yourder(82, 1); // Der(int, int) is called.
+}
+```
+Otherwise, there should be forwarding constructors in Der class for each Base constructor.
+```cpp
+Der::Der(double f) : Base(f) {}
+Der::Der(int x, int y) : Base(x, y) {}
+```
+
+# COURSE 22
+Multiple Inheritance:
+The concept of the Inheritance in C++ that allows a subclass to inherit properties or behaviour from multiple base classes.
+```cpp
+class A {};
+class B {};
+class C : public A, public B {}; // order is important; first ctor of A is called.
+```
