@@ -2033,10 +2033,149 @@ Der::Der(int x, int y) : Base(x, y) {}
 ```
 
 # COURSE 22
-Multiple Inheritance:
-The concept of the Inheritance in C++ that allows a subclass to inherit properties or behaviour from multiple base classes.
+#### Multiple Inheritance:
+The concept of the Inheritance in C++ that allows a subclass to inherit properties or behaviour from multiple base classes.  
+Under single inheritance, the scope of a derived class is nested within the scope of its direct and indirect base classes. Lookup happens by searching up the inheritance hierarchy until the given name is found. Names defined in a derived class hide uses of that name inside a base.  
+Under multiple inheritance, this same lookup happens simultaneously among all the direct base classes. If a name is found through more than one base class, then use of that name is ambiguous.
 ```cpp
-class A {};
-class B {};
+class A {
+public:
+  void func(int);
+};
+class B {
+public:
+  void func(int, int);
+};
 class C : public A, public B {}; // order is important; first ctor of A is called.
+
+int main() {
+  C cx;
+  cx.func(5);    // syntax error, ambiguity; to overcome cx.A::func(5);
+  cx.func(1, 2); // syntax error, ambiguity; to overcome cx.B::func(1, 2);
+}
 ```
+Multiple inheritance is usually used for getting interfaces of abstract classes.
+
+Dreaded Diamond of Derivation (DDD):  
+The Person class constructor is called twice; once when the Father class object is created and next when the Mother class object is created. The properties of the Person class are inherited twice, giving rise to ambiguity.
+```cpp
+class Person{
+protected:
+  int age_;
+};
+class Father : public Person{ ... };	// use virtual in front of public
+class Mother : public Person{ ... };    // use virtual in front of public
+class Child : public Father, public Mother{
+public:
+  void func(){
+     age_ = 1;  // syntax error, ambiguity
+  }
+};
+
+int main(){
+  Child* j = new Child();
+  Person* b = j;  // syntax error, ambiguity
+}
+```
+Use virtual keyword when classes Father and Mother inherit the Person class. This is usually called “virtual inheritance," which guarantees that only a single instance of the inherited class (in this case, the Person class) is passed on.  
+To prevent the base constructor from running multiple times, the constructor for a virtual base class is not called by the class inheriting from it. Instead, the constructor is called by the constructor of the concrete class.  
+In the example above, the class Child directly calls the base constructor for the class Person.
+
+final specifier: Specifies that a virtual function cannot be overridden in a derived class or that a class cannot be derived from.
+* final class: cannot be used as a base class for inheritance.
+* final override: cannot be overridden by a derived class.
+```cpp
+struct Base{
+  virtual void foo();
+};
+struct A : Base{
+  void foo() final; // Base::foo is overridden and A::foo is the final override
+  void bar() final; // Error: bar cannot be final as it is non-virtual
+};
+struct B final : A{ // struct B is final
+  void foo() override; // Error: foo cannot be overridden as it is final in A
+};
+struct C : B {};    // Error: B is final
+```
+
+#### Private Inheritance
+Private inheritance makes the public and protected members of the base class private in the derived class.  
+Implicit type conversion is not possible from derived class to base class (upcasting) for client code. Upcasting is only possible for derived class' own functions or friend functions to the derived class.
+```cpp
+class Base {};
+class Der : private Base{
+  friend void foo();
+  void bar(){
+    Der myder;
+    Base* baseptr = &myder;
+  }
+};
+void foo(){
+  Der myder;
+  Base* baseptr = &myder;
+}
+int main(){
+  Der myder;
+  Base* baseptr = &myder; // syntax error
+}
+```
+
+Private inheritance is usually used in the implementation of adapter design pattern.
+
+Empty Base Optimization:
+To optimize storage for data members of empty class types, and allow the size of an empty base subobject to be zero.
+The size of any object or member subobject is required to be at least 1 even if the type is an empty class type (that is, a class or struct that has no non-static data members), in order to be able to guarantee that the addresses of distinct objects of the same type are always distinct. For instance, an array of EmptyClass below has to have non-zero size because each object identified by the array subscript must be unique. Pointer arithmetic will fall apart if sizeof(EmptyClass) is zero. Often the size of such a class is one.
+```cpp
+class EmptyClass{};
+EmptyClass arr[10];  // Size of this array cannot be zero.
+```
+C++ makes special exemption for empty classes when they are inherited from. The compiler is allowed to flatten the inheritance hierarchy in a way that the empty base class does not consume space. 
+```cpp
+class Base{ // sizeof(Base) = 1
+  void func();
+};
+class Myclass{ // sizeof(Myclass) = 8 due to compiler alignment
+  int mx;
+  Base b;
+};
+class Urclass : private Base{ // sizeof(Urclass) = 4
+  int mx;
+};
+```
+
+Private inheritance is a syntactic variant of composition (aggregation and/or has-a relationship).
+```cpp
+class Engine {
+public:
+  Engine(int numCylinders);
+  void start();                 // _Starts this Engine_
+};
+class Car {
+public:
+  Car() : e_(8) { }             // _Initializes this Car with 8 cylinders_
+  void start() { e_.start(); }  // _Start this Car by starting its Engine_
+private:
+  Engine e_;                    // _Car has-a Engine_
+};
+```
+```cpp
+class Car : private Engine {    // _Car has-a Engine_
+public:
+  Car() : Engine(8) { }         // _Initializes this Car with 8 cylinders_
+  using Engine::start;          // _Start this Car by starting its Engine_
+};
+```
+There are several similarities between these two variants:
+* In both cases there is exactly one Engine member object contained in every Car object
+* In neither case can users (outsiders) convert a Car* to an Engine*
+* In both cases the Car class has a start() method that calls the start() method on the contained Engine object.
+
+There are also several distinctions:
+* The simple-composition variant is needed if you want to contain several Engines per Car
+* The private-inheritance variant can introduce unnecessary multiple inheritance
+* The private-inheritance variant allows members of Car to convert a Car* to an Engine*
+* The private-inheritance variant allows access to the protected members of the base class
+* The private-inheritance variant allows Car to override Engine's virtual functions
+
+#### Protected Inheritance
+Protected inheritance makes the public and protected members of the base class protected in the derived class.
