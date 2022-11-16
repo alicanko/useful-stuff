@@ -1957,6 +1957,18 @@ To implement virtual functions, C++ uses a special form of late binding known as
  First, every class that uses virtual functions (or is derived from a class that uses virtual functions) is given its own virtual table. This table is simply a static array that the compiler sets up at compile time. A virtual table contains one entry for each virtual function that can be called by objects of the class. Each entry in this table is simply a function pointer that points to the most-derived function accessible by that class.
 Second, the compiler also adds a hidden pointer that is a member of the base class, which we will call *__vptr. *__vptr is set (automatically) when a class object is created so that it points to the virtual table for that class. Unlike the *this pointer, which is actually a function parameter used by the compiler to resolve self-references, *__vptr is a real pointer. Consequently, it makes each class object allocated bigger by the size of one pointer. It also means that *__vptr is inherited by derived classes, which is important.
 
+| Base                                                                     | Base VTable                                                                  |
+|--------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| *__vptr; //points to Base VTable<br>virtual func1();<br>virtual func2(); | <br>func1(); //points to Base::func1()<br>func2(); //points to Base::func2() |
+
+| Der1 : public Base                                                      | Der1 VTable                                                                  |
+|-------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| *__vptr; //inherited, points to Der1 VTable<br>virtual func1();<br><br> | <br>func1(); //points to Der1::func1()<br>func2(); //points to Base::func2() |
+
+| Der2 : public Base                                                  | Der2 VTable                                                                  |
+|---------------------------------------------------------------------|------------------------------------------------------------------------------|
+| *__vptr; //inherited, points to Der2 VTable<br><br>virtual func2(); | <br>func1(); //points to Base::func1()<br>func2(); //points to Der2::func2() |
+
 Calling a virtual function is slower than calling a non-virtual function for a couple of reasons: First, we have to use the *__vptr to get to the appropriate virtual table. Second, we have to index the virtual table to find the correct function to call. Only then can we call the function. As a result, we have to do 3 operations to find the function to call, as opposed to one operation for a direct function call. Also, any class that uses virtual functions has a *__vptr, and thus each object of that class will be bigger by one pointer. Finally, there is allocation for virtual tables on heap.
 
 Virtual Constructor Idiom:
