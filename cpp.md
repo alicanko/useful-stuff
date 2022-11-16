@@ -2179,3 +2179,84 @@ There are also several distinctions:
 
 #### Protected Inheritance
 Protected inheritance makes the public and protected members of the base class protected in the derived class.
+
+# COURSE 23
+#### Exception Handling
+Geleneksel hata işleme mekanizmalarının dezavantajları:
+* İş gören kod ile hata işleyen kod iç içe geçmiş durumda.
+* Hata bildirildiğinde bu hataya müdahale zorunluluğu yok.
+* Programın akışı hatayı tespit eden koddan hatayı işleyen koda geçmiyor.
+
+std::terminate() is called by the C++ runtime when an exception is thrown and not caught. std::terminate calls the currently installed std::terminate_handler. The default std::terminate_handler calls std::abort. A user defined terminate function can be implemented by calling std::set_terminate.
+
+Derleyici throw ifadesi türünden bir nesne oluşturur ve bu nesne aynı türden parametre alan catch bloğuna gönderilir. Burada copy elision'dan faydalanılır.
+
+It is recommended that you throw exceptions by value and catch them by const reference. So that there is no extra call to copy constructor. Also object slicing is prevented if polymorphism is used.
+```cpp
+try{
+//...
+}
+catch (const std::logic_error& ex){
+//...
+}
+catch (const std::exception& ex){
+//...
+}
+catch (...){
+// this one catches all exceptions but the error type information is lost.
+}
+```
+
+Exception Safety:
+1) Basic guarantee: All invariants are preserved and there are no resource leaks. Any stored data will contain valid values which may differ from originals.
+2) Strong guarantee: Failed operations are guaranteed to have no side effects, leaving the original values intact. Also known as "commit or rollback".
+3) No-Throw guarantee: If an exception occurs, it will be handled internally and not observed by clients.
+
+Exception Translation:
+Throwing another exception after catching an exception.
+```cpp
+catch (std::out_of_range& ex){
+  //...
+  throw bad_database_access {};
+}
+```
+
+Rethrowing Exceptions:
+```cpp
+try{
+  throw std::runtime_error{"runtime"};
+}
+catch (const std::exception& ex){
+  throw; // if throw ex; then a new object is created with type std::exception
+/* This throw keyword that doesn’t appear to throw anything in particular actually
+re-throws the exact same exception that was just caught. No copies are made, 
+meaning we don’t have to worry about performance killing copies or slicing. */
+}
+```
+Uncaught exception dışında std::terminate fonksiyonunun çağrıldığı ikinci bir durum da yakalanmış bir hata nesnesi olmamasına rağmen rethrow yapılması.
+
+Exception Dispatcher Idiom:
+```cpp
+void handle_exception(){
+  try{
+    throw;
+  }
+  catch (std::out_of_range& ex) {}
+  catch (std::runtime_error& ex) {}
+}
+int main(){
+  try{
+  //...
+  }
+  catch (...){
+    handle_exception();
+  }
+}
+```
+
+Stack Unwinding:
+When an exception is thrown and control passes from a try block to a handler, the C++ run time calls destructors for all automatic objects constructed since the beginning of the try block. This process is called stack unwinding. The automatic objects are destroyed in reverse order of their construction. This happens before executing the code in the catch block.
+
+If an exception is thrown during construction of an object consisting of subobjects or array elements, destructors are only called for those subobjects or array elements successfully constructed before the exception was thrown. A destructor for a local static object will only be called if the object was successfully constructed.
+
+If during stack unwinding a destructor throws an exception and that exception is not handled, std::terminate() function is called. 
