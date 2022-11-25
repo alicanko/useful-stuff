@@ -2272,3 +2272,59 @@ When an exception is thrown and control passes from a try block to a handler, th
 If an exception is thrown during construction of an object consisting of subobjects or array elements, destructors are only called for those subobjects or array elements successfully constructed before the exception was thrown. A destructor for a local static object will only be called if the object was successfully constructed.
 
 If during stack unwinding a destructor throws an exception and that exception is not handled, std::terminate() function is called. 
+
+# COURSE 24
+**noexcept specifier**: Specifies whether a function could throw exceptions.
+noexcept(expression) -> expression - contextually converted constant expression of type bool.
+```cpp
+void func() noexcept;
+void func() noexcept(true); // same as above
+void foo();
+void foo() noexcept(false); // same as above
+```
+
+**noexcept operator**: Performs a compile-time check that returns true if an expression is declared to not throw any exceptions.
+The noexcept operator does not evaluate expression (unevaluated context), similar to sizeof.
+```cpp
+int x = 10;
+constexpr auto y = noexcept(x++); // y = true, x = 10
+```
+
+There are two good reasons for the use of noexcept: First, an exception specifier documents the behaviour of the function. If a function is specified as noexcept, it can be safely used in a non-throwing function. Second, it is an optimisation opportunity for the compiler. noexcept may not call std::unexpected and may not unwind the stack. The initialisation of a container may cheap move the elements into the container if the move constructor is declared as noexcept. If not declared as noexcept, the elements may be expensive copied into the container.
+
+Non-throwing functions are permitted to call potentially-throwing functions. Whenever an exception is thrown and the search for a handler encounters the outermost block of a non-throwing function, the function std::terminate is called.
+
+**Throwing exception in a constructor**:
+Constructors don’t have a return type, so it’s not possible to use return codes. The best way to signal constructor failure is therefore to throw an exception.
+ * Constructor exception throw ettiğinde nesne henüz hayata gelmemiştir. Bu nedenle exception yakalansa bile destructor çağrılmaz. Ancak sınıf içerisinde başka sınıf türlerinden üye değişkenler varsa, bu değişkenler hayata gelir ve destructorları çağrılır.
+
+Dinamik ömürlü nesnelerde constructor içerisinde exception throw ettiğinde destructor çağrılmasa da operator new tarafından elde edilen sizeof(class) kadar bellek bloğu derleyicinin ürettiği kod ile operator delete fonksiyonu çağrılarak serbest bırakılır.
+
+**Throwing exception in a destructor**:
+Throwing an exception from a destructor results in undefined behavior, meaning that your program could be terminated abruptly without neatly destroying others objects. Thus destructors should never throw exceptions. Instead, they should catch and handle those thrown by the functions they call, and be noexcept. This rule raises an issue when a destructor is not noexcept. By default, destructors are noexcept, therefore most of the time, nothing needs to be written in the source code. A destructor is not noexcept if:
+* the base class or a data member has a non noexcept destructor,
+* the destructor is decorated with the noexcept keyword followed by something that evaluates to false.
+
+#### Function-try-block: Establishes an exception handler around the body of a function.
+A function-try-block associates a sequence of catch clauses with the entire function body, and with the member initializer list (if used in a constructor) as well.
+```cpp
+struct S {
+    std::string m;
+    S(const std::string& str, int idx) try : m(str, idx) {
+        std::cout << "S(" << str << ", " << idx << ") constructed, m = " << m << '\n';
+    }
+    catch(const std::exception& e) {
+        std::cout << "S(" << str << ", " << idx << ") failed: " << e.what() << '\n';
+    } // implicit "throw;" here
+};
+ 
+int main() {
+    S s1{"ABC", 1}; // does not throw (index is in bounds)
+    try {
+        S s2{"ABC", 4}; // throws (out of bounds)
+    }
+    catch (std::exception& e) {
+        std::cout << "S s2... raised an exception: " << e.what() << '\n';
+    }
+}
+```
