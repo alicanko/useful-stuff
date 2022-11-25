@@ -2328,3 +2328,48 @@ int main() {
     }
 }
 ```
+
+# COURSE 25
+#### Run-Time Type Information (RTTI):
+A mechanism that exposes information about an object’s data type at runtime and is available only for the polymorphic classes (classes which have at least one virtual function). The RTTI provides an explicit way to identify the runtime type separately from what is possible with the virtual function mechanism.
+
+There are three main C++ language elements to run-time type information:
+* The **dynamic_cast** operator; used for conversion of polymorphic types only.
+   * Safely converts pointers and references to classes up, down, and sideways along the inheritance hierarchy.
+   * If the cast is successful, dynamic_cast returns a value of type new-type. If the cast fails and new-type is a pointer type, it returns a null pointer of that type. If the cast fails and new-type is a reference type, it throws an exception that matches a handler of type std::bad_cast.
+   ```cpp
+  Car* carptr;
+  Mercedes* p = dynamic_cast<Mercedes*>(carptr);
+  if(p) { // RTTI usage
+  // it is an object of type Mercedes.
+  }
+  ```
+* The **typeid** operator; used for identifying the exact type of an object.
+  * Used where the dynamic type of a polymorphic object must be known and for static type identification.
+  * The result of typeid is a const type_info&. The value is a reference to a type_info object that represents either the type-id or the type of the expression, depending on which form of typeid is used.
+  * If the object is a dereferenced null pointer, then the operation will throw a std::bad_typeid exception.
+  * When applied to an expression of polymorphic type, evaluation of a typeid expression may involve runtime overhead (a virtual table lookup), otherwise typeid expression is resolved at compile time (static type information).
+   ```cpp
+  Car* carptr;
+  if(typeid(*carptr) == typeid(Mercedes)) { // RTTI usage
+  // it is an object of type Mercedes.
+  }
+  ```
+* The **type_info** class; used to hold the type information returned by the typeid operator.
+  * Holds implementation-specific information about a type, including the name of the type and means to compare two types for equality or collating order.
+  * You cannot instantiate objects of the type_info class directly, because the class has only a private copy constructor. The only way to construct a (temporary) type_info object is to use the typeid operator. Since the assignment operator is also private, you cannot copy or assign objects of class type_info.
+
+RTTI should only be used sparingly in C++ programs. There are several reasons for this. Most importantly, other language mechanisms such as polymorphism and templates are almost always superior to RTTI. As with everything, there are exceptions, but the usual rule concerning RTTI is more or less the same as with goto statements. Do not use it as a shortcut around proper, more robust design. Only use RTTI if you have a very good reason to do so and only use it if you know what you are doing. Finally, because of the additional information required to store types some compilers (e.g. Visual Studio) require a special switch to enable RTTI.
+
+### Generic Programming
+Templates are the basis for generic programming in C++. As a strongly-typed language, C++ requires all variables to have a specific type, either explicitly declared by the programmer or deduced by the compiler. Templates enable you to define the operations of a class or function, and let the user specify what concrete types those operations should work on.
+```cpp
+template<typename T, size_t L> // T is a type parameter, L is a non-type parameter.
+class MyArray {
+    T arr[L];
+public:
+    MyArray() { ... }
+};
+
+MyArray<int, 10> arr;
+```
