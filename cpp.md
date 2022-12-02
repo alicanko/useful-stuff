@@ -2373,3 +2373,148 @@ public:
 
 MyArray<int, 10> arr;
 ```
+
+# COURSE 26
+#### Function Templates
+```cpp
+template<typename T, typename U>
+T& func(U& r) {
+  T x;
+  U y;
+}
+```
+
+How the compiler understands what type parameter is?
+ 1) **Template Argument Deduction**: In order to instantiate a function template, every template argument must be known, but not every template argument has to be specified. When possible, the compiler will deduce the missing template arguments from the function arguments.
+    ```cpp
+    template<typename T>
+    T foo();
+    int main() {
+      foo(); // error, insufficient info
+    }
+    ```
+    ```cpp
+    template<typename T>
+    void func(T x, T y);
+    int main() {
+      func(5, 7.8); // error, ambiguity
+    }
+    ```
+    Same rules apply for both auto type deduction and template argument deduction except one case;
+    ```cpp
+    template<typename T>
+    void f(T);
+    int main() {
+      auto x = {1, 2, 3, 4}; // std::initializer_list<int> x;
+      f({1, 2, 3, 4});       // syntax error
+    }
+    ```
+  * Move semantics instead of copying for swap function:
+    ```cpp
+    template<typename T>
+    void swap(T& x, T& y) {
+      T temp = std::move(x);
+      x = std::move(y);
+      y = std::move(temp);
+    }
+    ```
+  * Function templates and non-template functions may be overloaded. Non-template functions take precedence in overload resolution in such cases.
+    ```cpp
+    template<typename T>
+    void func(T x);
+    
+    void func(int);
+    
+    int main() {
+      func(3.5); // calls template function
+      func(7);   // calls non-template function
+    }
+    ```
+  * typename keyword should be used for nested types.
+    ```cpp
+    template<typename T>
+    typename T::value_type func(T x, int y) {
+      typename T::data_type data;
+    }
+    ```
+  * **SFINAE: Substitution Failure Is Not An Error**
+ This rule applies during overload resolution of function templates: When substituting the explicitly specified or deduced type for the template parameter fails, the specialization is discarded from the overload set instead of causing a compile error. This feature is used in template metaprogramming.
+    ```cpp
+    template<typename T>
+    typename T::value_type func(T x); // 1st definition
+
+    void func(double z); // 2nd definition
+
+    int main() {
+      func(12); // calls #2 without error, even though there is no double::value_type.
+    }
+    ```
+  * Code example that gives syntax error if the function is called with an argument other than integer:
+    ```cpp
+    template<typename T>
+    void func(T) = delete;
+    
+    void func(int);
+    
+    int main() {
+      func('A'); // syntax error
+      func(2.4); // syntax error
+      func(7);   // calls non-template function
+    }
+    ```
+  * **Partial ordering of function templates**: A function template specialization might be ambiguous because template argument deduction might associate the specialization with more than one of the overloaded definitions. The compiler will then choose the definition that is the most specialized. This process of selecting a function template definition is called partial ordering.
+A template X is more specialized than a template Y if every argument list that matches the one specified by X also matches the one specified by Y, but not the other way around. 
+    ```cpp
+    template<typename T> void f(T);
+    template<typename T> void f(T*);
+    template<typename T> void f(const T*);
+    
+    template<typename T> void g(T);
+    template<typename T> void g(T&);
+    
+    int main() {
+      const int *p;
+      f(p);
+      int q;
+      g(q); // error, ambiguity
+    }
+    ```
+    The declaration `template<class T> void f(const T*)` is more specialized than `template<class T> void f(T*)`. Therefore, the function call `f(p)` calls `template<class T> void f(const T*)`. However, neither `void g(T)` nor `void g(T&)` is more specialized than the other. Therefore, the function call `g(q)` would be ambiguous.
+    
+  * Templates and Return Types:
+    * Templates and trailing return type: 
+    ```cpp
+    template<typename T, typename U>
+    auto func(T x, U y) -> decltype(x + y);
+    ```
+    * Templates and auto return type:
+    ```cpp
+    template<typename T, typename U>
+    auto foo(T x, U y) {
+      return x + y; // return type is deduced.
+    }
+    ```
+    * Templates and decltype(auto) return type:
+    ```cpp
+    template<typename T>
+    decltype(auto) foo(T x) { return (x); }
+    int main() {
+      foo(12); // int& foo<int>(int x);
+    }
+    ```
+
+ 2) **Explicit Template Argument**:
+    ```cpp
+    template<typename T, typename U>
+    void func(T x, U y);
+    int main() {
+      func<double>(1, 4); // T is double(explicit), U is int(deduction)
+    }
+    ```
+
+ 3) **Default Template Argument**:
+    ```cpp
+    template<typename T, typename U=int>
+    void func(T x, U y);
+    ```
+    
