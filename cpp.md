@@ -2518,3 +2518,182 @@ A template X is more specialized than a template Y if every argument list that m
     void func(T x, U y);
     ```
     
+# COURSE 27
+#### Class Templates
+```cpp
+template<typename T, int i> 
+class MyStack{
+    T*  pStack;
+    T StackBuffer[i];
+    static const int cItems = i * sizeof(T);
+public:
+    MyStack(void);
+    void push(const T item);
+    T& pop(void);
+};
+
+template<typename T, int i> 
+MyStack<T, i>::MyStack(void){};
+
+template<typename T, int i> 
+void MyStack<T, i>::push(const T item){};
+
+template<typename T, int i> 
+T& MyStack<T, i>::pop(void){};
+```
+
+* A class template by itself is not a type, or an object, or any other entity. No code is generated from a source file that contains only template definitions. In order for any code to appear, a template must be instantiated: the template arguments must be provided so that the compiler can generate an actual class (or function, from a function template).
+
+* **Class template argument deduction** (CTAD) (since C++17): In order to instantiate a class template, every template argument must be known, but not every template argument has to be specified.
+
+* When defining a class template, you must organize the source code in such a way that the member definitions are visible to the compiler when it needs them. You have the choice of using the inclusion model or the explicit instantiation model. 
+  * In the inclusion model, you include the member definitions in every file that uses a template. The simplest and most common way to make template definitions visible throughout a translation unit, is to put the definitions in the header file itself. Any .cpp file that uses the template simply has to #include the header. This approach provides maximum flexibility in terms of what concrete types can be used with your template. Its disadvantage is that it can increase compilation times. The times can be significant if a project or the included files themselves are large. This approach is used in the Standard Library.
+  * With the explicit instantiation approach, the template itself instantiates concrete classes or class members for specific types. If the inclusion model isn't viable for your project, and you know definitively the set of types that will be used to instantiate a template, then you can separate out the template code into an .h and .cpp file, and in the .cpp file explicitly instantiate the templates. This approach can speed up compilation times, but it limits usage to only those classes that the template implementer has enabled ahead of time. 
+  * In general, it is recommended that you use the inclusion model unless the compilation times become a problem.
+
+* Default Template Argument:
+    ```cpp
+    template<typename T, typename U=T>
+    class Myclass {};
+
+    int main(){
+      Myclass<int> mx; // Myclass<int, int>
+      Myclass<int, double> my;
+    }
+    ```
+
+* template< auto >: If you wanted to create templates with non-type template parameters, you had to specify both the type and the value. In C++17, this is no longer the case, as template< auto > helps simplify these scenarios.
+    ```cpp
+    template <typename T, T value> 
+    constexpr T numeric_constant = value;
+
+    constexpr auto const the_answer = numeric_constant<int, 42>;
+    // with C++17
+    template <auto value> 
+    constexpr auto numeric_constant = value;
+
+    constexpr auto const the_answer = numeric_constant<42>;
+    ```
+    ```cpp
+    template <auto n> 
+    class Myclass {};
+ 
+    int main(){
+      Myclass<10> mx;  // deduces int.
+      Myclass<2.3> my; // deduces double.
+    }
+    ```
+   
+* Member Templates:
+    ```cpp
+    template<typename T>
+    class X {
+    public:
+      template<typename U>
+      void mf(const U &u); // member template
+    };
+
+    template<typename T> template<typename U>
+    void X<T>::mf(const U &u){ }
+    ``` 
+    
+* Explicit (full) Template Specialization: Allows customizing the template code for a given set of template arguments.
+    ```cpp
+    template<typename T>
+    class Myclass { };
+    template<>
+    class Myclass<int> { };
+
+    template<typename T>
+    void func(T x);
+    template<>
+    void func(int x);
+
+    int main(){
+      Myclass<char> cx; // template
+      Myclass<int> ix;  // specialization
+
+      func(2.3); // template
+      func(7);   // specialization
+    }
+    ``` 
+  * Code example that counts 1 to 10:
+    ```cpp
+    template<int n>
+    struct A : A<n-1> {
+      A() {
+        std::cout << n << " ";
+      }
+	};
+    template<>
+    struct A<0> {};
+
+    int main(){
+      A<10> ax;
+    }
+    ```
+
+* Partial Template Specialization:  Allows customizing templates for a given category of template arguments.
+    ```cpp
+    template<typename T>
+    class Myclass {};
+
+    template<typename T>
+    class Myclass<T*> {};
+
+    int main(){
+      Myclass<int> m1;   // template
+      Myclass<char*> m2; // specialization for pointers
+    }
+    ```
+
+* Function Overloads vs Function Specializations:  Only non-template and primary template overloads participate in overload resolution. The specializations are not overloads and are not considered. Only after the overload resolution selects the best-matching primary function template, its specializations are examined to see if one is a better match. It is important to remember this rule while ordering the header files of a translation unit.
+    ```cpp
+    template<typename T> void foo(T);    // overload for all types
+    template<typename T> void foo(T*);   // overload for all pointer types
+    template<>           void foo(int*); // specialisation of foo(T*)
+    // candidates: #1 and #2. #2 is chosen, then looking at its specialization;
+    foo(new int); // calls foo(int*);
+    ```
+    ```cpp
+    template<typename T> void foo(T);    // overload for all types
+    template<>           void foo(int*); // specialisation of foo(T)
+    template<typename T> void foo(T*);   // overload for all pointer types
+    // candidates: #1 and #3. #3 is chosen;
+    foo(new int); // calls foo(T*), even though #2 would be a perfect match
+    ```
+    
+* **Perfect Forwarding**:  Forwarding a function argument to another while preserving the value category of it.
+    ```cpp
+    class Myclass {};
+    void foo(Myclass&);       // #1
+    void foo(const Myclass&); // #2
+    void foo(Myclass&&);      // #3
+
+    template<typename T>
+    void func(T&& x) {
+      foo(std::forward<T>(x));
+    }
+
+    int main(){
+      Myclass m;
+      const Myclass cm;
+
+      func(m);         // calls #1
+      func(cm);        // calls #2  
+      func(Myclass{}); // calls #3
+      // all of them would call the #1 if perfect forwarding does not exist.
+    }
+    ```
+
+* **Alias Template**:  An alias template is a template which, when specialized, is equivalent to the result of substituting the template arguments of the alias template for the template parameters in the type-id.
+    ```cpp
+    template<typename T>
+    using mypair = std::pair<T, T>;
+
+    int main(){
+      mypair<int> mx; // std::pair<int, int> mx;
+    }
+    ```
+    
+ 
