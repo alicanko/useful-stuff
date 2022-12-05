@@ -2696,4 +2696,113 @@ T& MyStack<T, i>::pop(void){};
     }
     ```
     
- 
+ # COURSE 28
+* **Variable Template**: A variable template defines a family of variable (when declared at namespace scope) or a family of static data members (when defined at class scope).
+    ```cpp
+    template<typename T>
+    struct Mystruct {
+      constexpr static bool value = true;
+    };
+
+    template<typename T>
+    constexpr bool Mystruct_v = Mystruct<T>::value;
+    
+    int main(){
+      bool flag = Mystruct_v<int>; // Mystruct<int>::value
+    }
+    ```
+
+* **Metafunctions**: Derive/calculate values or types at compile time. Algorithms -- compile-time or run-time -- should be encapsulated so that they are easier to use and reuse. Conventionally, run-time algorithms are encapsulated in functions that are invoked, obviously, at run-time. Metafunctions, on the other hand, are compile-time analogs of run-time functions. Traditional functions accept values/objects as parameters and return values/objects. However, metafunctions accept types and compile-time constants as parameters and return types/constants. A metafunction, contrary to its name, is a class template. Implementation of metafunctions is often based on template specializations.
+    ```cpp
+    // from type-traits;
+    std::remove_reference_t<int&> // returns int
+    std::remove_const_t<const double> // returns double
+    std::is_void<int> // returns false
+    ```
+    ```cpp
+    template<int N>
+    struct Factorial {
+      enum {  value = N * Factorial<N-1>::value  };
+    };
+    template<>
+    struct Factorial<0> {
+      enum {  value = 1  };
+    };
+    void foo() {
+      int x = Factorial<4>::value;  // == 24 in compile-time
+      int y = Factorial<0>::value;  // == 1 in compile-time
+    }
+    ```
+
+* **Tag Dispatch**: Tag dispatching is a way of using function overloading to dispatch based on properties of a type, and is often used hand in hand with traits classes.
+    ```cpp
+    template<typename T>
+    void func_impl(T x, std::true_type);
+    template<typename T>
+    void func_impl(T x, std::false_type);
+
+    template<typename T>
+    void func(T x) {
+      func_impl(x, std::is_integral<T>::type);
+    }
+
+    int main() {
+      func(12);  // 1st func_impl function is called.
+      func(2.3); // 2nd func_impl function is called.
+    }
+    ```
+
+* **if constexpr**: Compile-time check is done. Added with C++17.
+    ```cpp
+    template <typename T> 
+    void func(T x) { 
+        if constexpr (std::is_integral_v<T>) {
+            std::cout << x << " ";
+        }
+        else { // compiler does not generate code for non-integral types in this case.
+            x.foo();
+        }
+    }
+
+    int main() {
+      func(12);  // there would be syntax error if argument type is double.
+    }
+    ```
+
+* **Variadic Template**: A variadic template is a class or function template that supports an arbitrary number of arguments. This mechanism is especially useful to C++ library developers: You can apply it to both class templates and function templates, and thereby provide a wide range of type-safe and non-trivial functionality and flexibility.
+    ```cpp
+    template<typename... Args>
+    void func(Args... args) {
+      int n = sizeof...(Args); // or sizeof...(args);
+      int a[] = {args...};   // function parameter pack expansion
+      Mytemplate<Args...> x; // template parameter pack expansion
+    }
+
+    int main(){
+      func(1, 3.2, 7L); // void func(int, double, long)
+    }
+    ```
+    
+  A good way to illustrate the variadic function template mechanism is to use it in a rewrite of some of the functionality of printf;
+    ```cpp
+    template<typename T>
+    void print(const T& val) { // base function to end recursive calls
+      std::cout << val << '\n';
+    }
+
+    template<typename T, typename... Args>
+    void print(const T& val, const Args&... args) { // recursive variadic function
+      if constexpr(sizeof...(args) > 0) {
+        std::cout << val << '\n';
+        print(args...); // recursive call using pack expansion syntax
+      }
+    }
+
+    int main(){
+      print(3, 5, 7);
+      // 1st call to recursive: void print<int, int, int>(const int&, const int&, const int&);
+      // 2nd call to recursive: void print<int, int>(const int&, const int&);
+      // 3rd call to base:      void print<int>(const int&);      
+    }
+    ```
+
